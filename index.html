@@ -155,7 +155,8 @@ main{padding:20px 0 72px}
 .lsc.p{color:var(--ok)}
 
 /* ---- lesson steps ---- */
-.stepbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0 22px}
+.stepbar{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:18px 0 22px}
+.casebox{background:var(--bg3);border-left:3px solid var(--acc);border-radius:10px;padding:13px 15px;margin:10px 0 14px;font-size:15px;line-height:1.62}
 .step{padding:11px 8px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);text-align:center;
   font-size:12.5px;font-weight:650;line-height:1.35;position:relative}
 .step small{display:block;font-size:10.5px;color:var(--fg3);font-weight:700;letter-spacing:.05em;margin-bottom:2px}
@@ -308,7 +309,7 @@ footer{border-top:1px solid var(--line);margin-top:36px;padding:22px 0 34px;font
 footer p{margin:4px 0}
 @media(max-width:560px){
   body{font-size:15.5px}.pad{padding:15px}
-  .stepbar{grid-template-columns:repeat(2,1fr)}
+  .stepbar{grid-template-columns:repeat(3,1fr)}
   .fc .q{font-size:21px}.qtxt{font-size:17.5px}.score{font-size:46px}
   .prow .nm{flex:0 0 96px;font-size:12px}
   .grid{grid-template-columns:1fr}
@@ -380,8 +381,10 @@ let mem=defState();
 if(HAS_LS){try{const r=localStorage.getItem(KEY); if(r) Object.assign(mem,JSON.parse(r));}catch(e){}}
 let S=mem;
 function save(){if(HAS_LS){try{localStorage.setItem(KEY,JSON.stringify(mem))}catch(e){}}}
-function D(id){ if(!S.d[id]) S.d[id]={o:0,f:0,l:0,t:0}; return S.d[id]; }
+function D(id){ if(!S.d[id]) S.d[id]={o:0,f:0,l:0,t:0,k:0}; if(S.d[id].k===undefined) S.d[id].k=0; return S.d[id]; }
 if(!S.hx) S.hx={}; if(!S.wd) S.wd={};
+/* 5-босқич (кейслар) қўшилди — аввал тугалланган дарслар прогресси йўқолмасин */
+if(!S.m5){ Object.keys(S.d||{}).forEach(id=>{const d=S.d[id]; if(d&&d.o&&d.f&&d.l&&d.t>=PASS&&!d.k) d.k=1;}); S.m5=1; save(); }
 
 /* ---- helpers ---- */
 const $=i=>document.getElementById(i);
@@ -390,7 +393,7 @@ function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");clear
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function norm(s){return String(s).toLowerCase().replace(/[ʼʻ'’`]/g,"").replace(/ё/g,"е").replace(/ў/g,"у").replace(/қ/g,"к").replace(/ғ/g,"г").replace(/ҳ/g,"х")}
 function pct(a,b){return b?Math.round(a/b*100):0}
-function lessonDone(s){const d=D(s.id);return d.o&&d.f&&d.l&&d.t>=PASS}
+function lessonDone(s){const d=D(s.id);return d.o&&d.f&&d.l&&d.t>=PASS&&d.k}
 const WOF={}; HAFTA.forEach(h=>h.std.forEach(i=>WOF[i]=h));
 function weekOf(id){return WOF[id]}
 function weekLessonsDone(h){return h.std.every(i=>lessonDone(byId[i]))}
@@ -473,7 +476,7 @@ function weekBody(h){
     return '<div class="lrow'+(lk?" lock":"")+(dn?" done":"")+'"'+(lk?'':' onclick="openLesson('+id+')"')+'>'+
       '<div class="lnum">'+(dn?"✓":lk?"🔒":"SS")+'</div>'+
       '<div class="linfo"><b>SS '+id+' — '+esc(s.uz)+'</b><span>'+esc(s.en)+(s.muhim?' · ★ энг муҳим':'')+'</span></div>'+
-      '<div class="steps">'+["o","f","l","t"].map(k=>'<div class="stp'+((k==="t"?d.t>=PASS:d[k])?" on":"")+'"></div>').join("")+'</div>'+
+      '<div class="steps">'+["o","f","l","t","k"].map(k=>'<div class="stp'+((k==="t"?d.t>=PASS:d[k])?" on":"")+'"></div>').join("")+'</div>'+
       '<div class="lsc'+(d.t>=PASS?" p":"")+'">'+(d.t?d.t+"%":"—")+'</div></div>';
   };
   (h.darslar||[]).forEach(dr=>{
@@ -520,14 +523,14 @@ function openLesson(id,st){
   L=byId[id];
   if(!unlocked(L)){toast("Аввалги дарс тестидан "+PASS+"% олинг");return}
   const d=D(id);
-  step = st || (!d.o?1:!d.f?2:!d.l?3:4);
+  step = st || (!d.o?1:!d.f?2:!d.l?3:d.t<PASS?4:5);
   drawLesson(); setTab("lesson");
 }
-function stepLocked(n){const d=D(L.id);return n===2?!d.o:n===3?!d.f:n===4?!d.l:false}
+function stepLocked(n){const d=D(L.id);return n===2?!d.o:n===3?!d.f:n===4?!d.l:n===5?!(d.t>=PASS):false}
 function drawLesson(){
   const d=D(L.id);
-  const names=[["1-босқич","Ўқиш"],["2-босқич","Флешкарта"],["3-босқич","Луғат машқи"],["4-босқич","Тест"]];
-  const okf=[!!d.o,!!d.f,!!d.l,d.t>=PASS];
+  const names=[["1-босқич","Ўқиш"],["2-босқич","Флешкарта"],["3-босқич","Луғат машқи"],["4-босқич","Тест"],["5-босқич","Кейслар"]];
+  const okf=[!!d.o,!!d.f,!!d.l,d.t>=PASS,!!d.k];
   let h='<button class="btn" onclick="renderDars();setTab(\'dars\')">← Дарслар рўйхати</button>'+
   '<div class="row" style="margin:16px 0 6px">'+
     '<span class="badge '+MODC[L.blok]+'">'+esc(L.modul)+'</span>'+
@@ -541,7 +544,7 @@ function drawLesson(){
       '><small>'+n[0]+'</small>'+n[1]+(okf[i]?" ✓":"")+'</button>';
   }).join("")+'</div><div id="stepbody"></div>';
   $("v-lesson").innerHTML=h;
-  ({1:drawRead,2:drawFlash,3:drawDrill,4:drawTestIntro})[step]();
+  ({1:drawRead,2:drawFlash,3:drawDrill,4:drawTestIntro,5:drawCases})[step]();
   window.scrollTo({top:0,behavior:"instant"});
 }
 
@@ -682,7 +685,7 @@ function paintFCw(){
   $("fc").onclick=fcF;
 }
 function drawLessonBarOnly(){
-  const okf=[!!D(L.id).o,!!D(L.id).f,!!D(L.id).l,D(L.id).t>=PASS];
+  const okf=[!!D(L.id).o,!!D(L.id).f,!!D(L.id).l,D(L.id).t>=PASS,!!D(L.id).k];
   document.querySelectorAll(".stepbar .step").forEach((el,i)=>{
     if(okf[i]&&step!==i+1){el.classList.add("ok");if(!/✓/.test(el.textContent))el.innerHTML+=" ✓"}
     if(!stepLocked(i+1)){el.classList.remove("lk");el.setAttribute("onclick","step="+(i+1)+";drawLesson()")}
@@ -692,8 +695,8 @@ function drawLessonBarOnly(){
 /* --- step 3: луғат машқи (актив эслаш) --- */
 let drill=[],dqi=0,dwrong=0;
 function drawDrill(){
-  drill=shuffle(L.lugatTest.filter(q=>q.savol.startsWith("«")));  // атама → маъно
-  if(drill.length<L.lugat.length) drill=shuffle(L.lugatTest.slice(0,Math.max(4,L.lugat.length)));
+  drill=shuffle(L.lugatTest.filter(q=>q.savol.startsWith("«")));  // атама → маъно (фақат шу йўналиш)
+  if(!drill.length) drill=shuffle(L.lugatTest).slice(0,Math.max(4,Math.min(L.lugat.length,L.lugatTest.length)));
   dqi=0;dwrong=0;paintDrill();
 }
 function paintDrill(){
@@ -726,10 +729,76 @@ function dPick(i){
   $("dnx").focus();
 }
 
+/* --- step 5: кейслар (амалий вазият → қоида) --- */
+const CASEN=6;
+function nextStd(){ const i=STD.indexOf(L); return (i>=0&&i+1<STD.length)?STD[i+1]:null; }
+function buildCases(){
+  const secs=L.konspekt.map((b,i)=>({i,s:b.s,p:b.p||[]}));
+  let pool=[];
+  L.konspekt.forEach((b,i)=>(b.m||[]).forEach((t,k)=>pool.push({i,t,key:L.id+":c"+i+"_"+k})));
+  if(!pool.length||secs.length<2) return [];
+  pool=shuffle(pool);
+  const seen=new Set(), first=[], rest=[];
+  pool.forEach(c=>{ if(!seen.has(c.i)){seen.add(c.i);first.push(c)} else rest.push(c) });   // ҳар бўлимдан камида биттадан
+  const sel=first.concat(rest).slice(0,Math.min(CASEN,pool.length));
+  return shuffle(sel).map(c=>{
+    const others=shuffle(secs.filter(x=>x.i!==c.i)).slice(0,3);
+    const opts=shuffle([secs[c.i]].concat(others));
+    return {q:c.t, v:opts.map(o=>o.s), j:opts.findIndex(o=>o.i===c.i),
+            izoh:(secs[c.i].p||[]).slice(0,3), sec:secs[c.i].s, key:c.key};
+  });
+}
+let cases=[],ci=0,cwrong=0;
+function drawCases(){ cases=buildCases(); ci=0; cwrong=0; paintCase(); }
+function paintCase(){
+  const b=$("stepbody");
+  if(!cases.length){
+    D(L.id).k=1;save();
+    b.innerHTML='<div class="qbox card pad center"><p class="muted">Бу дарс учун кейс топилмади.</p>'+
+      '<button class="btn pri big" style="margin-top:10px" onclick="renderDars();setTab(\'dars\')">Дарслар рўйхати</button></div>';
+    drawLessonBarOnly(); return;
+  }
+  if(ci>=cases.length){
+    D(L.id).k=1;save();
+    const nx=nextStd();
+    b.innerHTML='<div class="qbox card pad center"><div style="font-size:42px">🎓</div>'+
+      '<h3 style="margin:8px 0">Кейслар ечилди — дарс тугалланди</h3>'+
+      '<p class="muted">Барча амалий вазият тўғри таҳлил қилинди'+(cwrong?" ("+cwrong+" та хато қайта сўралди)":"")+'. Кейинги дарс очилди.</p>'+
+      '<div class="row" style="justify-content:center;margin-top:14px">'+
+      (nx?'<button class="btn pri big" onclick="openLesson('+nx.id+')">Кейинги дарс: SS '+nx.id+' →</button>':'')+
+      '<button class="btn" onclick="renderDars();setTab(\'dars\')">Дарслар рўйхати</button></div></div>';
+    drawLessonBarOnly(); return;
+  }
+  const q=cases[ci];
+  b.innerHTML='<div class="qbox">'+
+    '<div class="qmeta"><span>Кейс таҳлили — ҳаммасига тўғри жавоб керак</span><span>'+(ci+1)+' / '+cases.length+'</span></div>'+
+    '<div class="bar" style="margin:9px 0"><i style="width:'+pct(ci,cases.length)+'%"></i></div>'+
+    '<div class="casebox">'+esc(q.q)+'</div>'+
+    '<div class="qtxt" style="font-size:16px">Ушбу амалий вазият стандартнинг қайси қоидаси (бўлими) билан ҳал қилинади?</div>'+
+    '<div class="opts" id="copts">'+q.v.map((v,i)=>'<button class="opt" data-i="'+i+'"><em>'+"АБВГ"[i]+'</em><span>'+esc(v)+'</span></button>').join("")+'</div>'+
+    '<div id="cafter"></div></div>';
+  $("copts").onclick=e=>{const el=e.target.closest(".opt");if(!el||el.disabled)return;cPick(+el.dataset.i)};
+}
+function cPick(i){
+  const q=cases[ci], ok=i===q.j;
+  document.querySelectorAll("#copts .opt").forEach((b,k)=>{b.disabled=true;
+    if(k===q.j)b.classList.add("ok");else if(k===i)b.classList.add("bad")});
+  if(!ok){cwrong++;cases.push(q)}
+  $("cafter").innerHTML='<div class="expl '+(ok?"ok":"bad")+'"><b>'+(ok?"✓ Тўғри — ":"✗ Нотўғри. Тўғри жавоб — ")+esc(q.sec)+
+    (ok?"":" (бу кейс охирида яна сўралади)")+'</b>'+
+    q.izoh.map(t=>'<div style="margin-top:6px">'+esc(t)+'</div>').join("")+'</div>'+
+    '<button class="btn pri big" id="cnx" style="margin-top:13px">Кейинги →</button>';
+  $("cnx").onclick=()=>{ci++;paintCase();window.scrollTo({top:0,behavior:"smooth"})};
+  $("cnx").focus();
+}
+
 /* --- step 4: тест --- */
 function buildLessonTest(){
   const rules=shuffle(L.testlar.map((t,i)=>({...t,sid:L.id,key:L.id+":r"+i})));
-  const vocab=shuffle(L.lugatTest.map((t,i)=>({...t,sid:L.id,key:L.id+":v"+i})));
+  const all=L.lugatTest.map((t,i)=>({...t,sid:L.id,key:L.id+":v"+i}));
+  let vp=all.filter(q=>!q.savol.startsWith("«"));   // 3-босқич машқида сўралганлари чиқариб ташланади
+  if(vp.length<3) vp=all;
+  const vocab=shuffle(vp);
   const nv=Math.min(5,vocab.length), nr=Math.min(rules.length,TESTN-nv);
   return shuffle(rules.slice(0,nr).concat(vocab.slice(0,nv)));
 }
@@ -825,9 +894,9 @@ function finishQ(){
   if(qmode==="dars"){
     const d=D(L.id); if(p>d.t)d.t=p; save();
     extra = pass
-      ? '<p class="muted">Дарс тугалланди — кейинги дарс очилди.</p>'+
+      ? '<p class="muted">Тест топширилди ✓ Дарс тугаши учун охирги <b>5-босқич — кейслар</b> қолди.</p>'+
         '<div class="row" style="justify-content:center;margin-top:14px">'+
-        (L.dars<STD.length?'<button class="btn pri big" onclick="openLesson('+STD[L.dars].id+')">'+(L.dars+1)+'-дарсга ўтиш →</button>':'')+
+        '<button class="btn pri big" onclick="step=5;drawLesson()">Кейсларга ўтиш →</button>'+
         '<button class="btn" onclick="renderDars();setTab(\'dars\')">Дарслар рўйхати</button></div>'
       : '<p class="muted">Кейинги дарс очилиши учун '+PASS+'% керак. Хатоларни кўриб чиқиб, қайта уриниб кўринг.</p>'+
         '<div class="row" style="justify-content:center;margin-top:14px">'+
@@ -925,6 +994,7 @@ function renderProg(){
   const tested=STD.filter(s=>D(s.id).t>0).length;
   const avg=tested?Math.round(STD.filter(s=>D(s.id).t>0).reduce((a,s)=>a+D(s.id).t,0)/tested):0;
   const wr=Object.keys(S.wrong).length;
+  const cs=STD.filter(s=>D(s.id).k).length;
   const wp=HAFTA.filter(weekPassed).length;
   const ex=Object.keys(S.hx).length;
   const exavg=ex?Math.round(Object.values(S.hx).reduce((a,b)=>a+b,0)/ex):0;
@@ -933,7 +1003,7 @@ function renderProg(){
   '<div class="stats">'+
     st(wp+" / "+HAFTA.length,"Тугалланган ҳафта")+st(done+" / "+STD.length,"Тугалланган дарс")+
     st(pct(wp,HAFTA.length)+"%","Курс прогресси")+st(read,"Ўқилган конспект")+
-    st(avg+"%","Дарс тести — ўртача")+st(exavg+"%","Имтиҳон — ўртача")+st(wr,"Такрорлаш керак савол")+
+    st(avg+"%","Дарс тести — ўртача")+st(exavg+"%","Имтиҳон — ўртача")+st(cs,"Кейслар ечилган дарс")+st(wr,"Такрорлаш керак савол")+
   '</div>'+
   '<div class="sechead">Модуллар кесимида</div><div class="card pad">'+
     Object.keys(mods).map(m=>'<div class="prow"><div class="nm">'+esc(m.split("—")[0].trim())+' · '+mods[m].w+'</div>'+
@@ -992,7 +1062,7 @@ document.addEventListener("keydown",e=>{
   }
   const k="1234".indexOf(e.key);
   if(k>=0){const b=document.querySelector(".opt[data-i=\""+k+"\"]");if(b&&!b.disabled)b.click()}
-  if(e.key==="Enter"){const n=$("nx")||$("dnx");if(n)n.click()}
+  if(e.key==="Enter"){const n=$("nx")||$("dnx")||$("cnx");if(n)n.click()}
 });
 
 renderDars();
