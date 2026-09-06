@@ -355,6 +355,9 @@ footer p{margin:4px 0}
 /* ================= ТЕЛЕФОН ЭКРАНИГА МОСЛАШ ================= */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .ltitle{font-size:23px}
+.secmark{flex:0 0 auto;width:34px;height:34px;border-radius:9px;border:1px solid var(--line2);
+  background:var(--bg2);color:var(--fg2);font-size:15px;cursor:pointer;margin-left:8px}
+.secmark.on{background:color-mix(in srgb,var(--ok) 16%,var(--bg2));border-color:var(--ok);color:var(--ok)}
 .btn.mkon{background:color-mix(in srgb,var(--ok) 14%,var(--bg2));border-color:var(--ok);color:var(--ok)}
 .wkmark{padding:10px 15px 4px}
 .wkmark .btn{width:100%;justify-content:center;font-size:13.5px}
@@ -584,6 +587,7 @@ function drawBankList(){
     '<p class="muted" style="margin:0">Ечилган: <b>'+dn+'/'+tot+'</b>'+(dn?' · тўғри: <b>'+okk+'</b> ('+Math.round(okk/dn*100)+'%)':'')+'</p>'+
     '<div class="row" style="margin-top:12px">'+
       '<button class="btn big" onclick="startBank(-1)">Ҳаммаси — '+tot+' савол</button>'+
+      '<button class="btn" onclick="markFirst()">Ишланганини белгилаш</button>'+
       (dn?'<button class="btn" onclick="resetBank()">Натижани тозалаш</button>':'')+
     '</div></div>';
   h+=ARR.map(function(b,i){
@@ -592,9 +596,33 @@ function drawBankList(){
       '<div class="lnum'+(t.done===t.n?" done":"")+'">'+(t.done===t.n?"✓":"SS")+'</div>'+
       '<div class="linfo"><b>SS '+b.sid+' — '+esc(b.nom)+'</b><span>'+t.n+' та савол'+
         (t.done?' · ечилган '+t.done+' · тўғри '+t.ok:'')+'</span></div>'+
-      '<div class="lsc">'+(t.done?Math.round(t.ok/t.done*100)+'%':'→')+'</div></div>';
+      '<div class="lsc">'+(t.done?Math.round(t.ok/t.done*100)+'%':'→')+'</div>'+
+      '<button class="secmark'+(t.done===t.n?" on":"")+'" onclick="toggleSec(event,'+i+')" title="Бўлимни белгилаш">✓</button></div>';
   }).join("");
   $(cfg.view).innerHTML=h;
+}
+function markSec(i,on){
+  var st=bstore(), b=BANKS[CURB].arr()[i];
+  b.q.forEach(function(_,k){ var key=bankKey(i,k); if(on) st[key]=1; else delete st[key] });
+  save();
+}
+function toggleSec(e,i){
+  e.stopPropagation();
+  var t=bankStat(i), on=(t.done!==t.n);
+  if(!on && !confirm("Бу бўлим белгиси олиб ташлансинми?")) return;
+  markSec(i,on); drawBankList();
+}
+function markFirst(){
+  var ARR=BANKS[CURB].arr(), tot=0;
+  ARR.forEach(function(b){ tot+=b.q.length });
+  var v=prompt("Бошидан нечта савол ишланган? (1–"+tot+")","");
+  if(v===null) return;
+  var n=parseInt(v,10);
+  if(!(n>0)){ toast("Рақам киритинг"); return }
+  n=Math.min(n,tot);
+  var st=bstore(), c=0;
+  ARR.forEach(function(b,i){ b.q.forEach(function(_,k){ var key=bankKey(i,k); if(c<n) st[key]=1; c++ }) });
+  save(); drawBankList(); toast("Биринчи "+n+" савол белгиланди");
 }
 function resetBank(){ if(!confirm("Бу бўлим натижалари тозалансинми?")) return; S[BANKS[CURB].key]={}; save(); drawBankList() }
 var bqz=[],bqi=0,bqSec=-1;
