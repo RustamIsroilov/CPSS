@@ -355,6 +355,15 @@ footer p{margin:4px 0}
 /* ================= ТЕЛЕФОН ЭКРАНИГА МОСЛАШ ================= */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .ltitle{font-size:23px}
+.schd{font-size:12.5px;font-weight:700;color:var(--fg2);padding:10px 2px 4px}
+.schrow{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);
+  border-radius:11px;background:var(--bg2);margin-bottom:6px}
+.schnm{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.schnm b{font-size:13px}
+.schnm span{font-size:12.5px;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.schsel{flex:0 0 auto;max-width:52%;padding:7px 9px;border-radius:9px;border:1px solid var(--line2);
+  background:var(--bg);color:var(--fg);font-size:12.5px;font-family:inherit}
+@media (max-width:760px){ .schrow{flex-wrap:wrap} .schsel{max-width:100%;width:100%} }
 .wkdiv{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   color:var(--fg2);padding:16px 2px 6px}
 .secmark{flex:0 0 auto;width:34px;height:34px;border-radius:9px;border:1px solid var(--line2);
@@ -696,10 +705,81 @@ $("themeBtn").onclick=()=>{S.theme=document.documentElement.dataset.t==="dark"?"
 applyTheme();
 
 /* ================= 1. ҲАФТАЛИК РЕЖА ================= */
+/* ===== жадвал таҳрирловчи ===== */
+const BASE_DARS={};
+STD.forEach(function(x){ BASE_DARS[x.id]=x.dars });
+function darsSlot(n){
+  for(var i=0;i<HAFTA.length;i++){
+    var h=HAFTA[i];
+    for(var k=0;k<h.darslar.length;k++) if(h.darslar[k].d===n) return {h:h,d:h.darslar[k]};
+  }
+  return null;
+}
+function applySched(){
+  var ov=S.sched||{};
+  HAFTA.forEach(function(h){ h.darslar.forEach(function(d){ d.std=[] }) });
+  STD.forEach(function(x){
+    var n=ov[x.id]||BASE_DARS[x.id];
+    var sl=darsSlot(n)||darsSlot(BASE_DARS[x.id]);
+    if(!sl) return;
+    x.hafta=sl.h.n; x.dars=sl.d.d; x.kun=sl.d.kun;
+    sl.d.std.push(x.id);
+  });
+  HAFTA.forEach(function(h){
+    h.std=h.darslar.reduce(function(a,d){ return a.concat(d.std) },[]);
+  });
+}
+function darsOptions(sel){
+  var o="";
+  HAFTA.forEach(function(h){
+    h.darslar.forEach(function(d){
+      o+='<option value="'+d.d+'"'+(d.d===sel?' selected':'')+'>'+
+         h.n+'-ҳафта · '+d.d+'-дарс · '+d.kun+'</option>';
+    });
+  });
+  return o;
+}
+function setSched(sid,n){
+  if(!S.sched) S.sched={};
+  n=parseInt(n,10);
+  if(n===BASE_DARS[sid]) delete S.sched[sid]; else S.sched[sid]=n;
+  applySched(); save(); renderSchedEdit();
+}
+function resetSched(){
+  if(!confirm("Жадвал аслига қайтарилсинми?")) return;
+  S.sched={}; applySched(); save(); renderSchedEdit();
+}
+function renderSchedEdit(){
+  var moved=Object.keys(S.sched||{}).length;
+  var h='<button class="btn" onclick="renderDars();setTab(\'dars\')">← Ҳафталик режа</button>'+
+    '<div class="sechead">Жадвални таҳрирлаш</div>'+
+    '<div class="card pad" style="margin-bottom:16px">'+
+      '<p class="muted" style="margin:0 0 10px">Ҳар бир стандарт ёнидаги рўйхатдан дарсни танланг. '+
+      'Ўзгариш дарҳол сақланади ва ҳафталик режада акс этади.</p>'+
+      '<p class="muted" style="margin:0">Кўчирилган стандартлар: <b>'+moved+'</b></p>'+
+      (moved?'<div class="row" style="margin-top:12px"><button class="btn" onclick="resetSched()">Аслига қайтариш</button></div>':'')+
+    '</div>';
+  HAFTA.forEach(function(w){
+    h+='<div class="wkdiv">'+w.n+'-ҳафта · '+esc(String(w.modul||"").split("—")[0].trim())+'</div>';
+    w.darslar.forEach(function(d){
+      h+='<div class="schd">'+d.d+'-дарс · '+d.kun+(d.std.length?'':' · <i>бўш</i>')+'</div>';
+      d.std.forEach(function(sid){
+        var x=byId[sid];
+        h+='<div class="schrow"><div class="schnm"><b>SS '+sid+'</b><span>'+esc(x.uz)+'</span></div>'+
+           '<select class="schsel" onchange="setSched('+sid+',this.value)">'+darsOptions(d.d)+'</select></div>';
+      });
+    });
+  });
+  $("v-dars").innerHTML=h;
+  setTab("dars",true);
+  window.scrollTo({top:0,behavior:"instant"});
+}
 function renderDars(){
   const done=STD.filter(lessonDone).length, cur=curLesson(), cw=curWeek();
   const wdone=HAFTA.filter(weekPassed).length;
-  let html='<div class="card pad" style="margin-bottom:18px">'+
+  let html='<div class="row" style="justify-content:flex-end;margin-bottom:10px">'+
+    '<button class="btn" onclick="renderSchedEdit()">✎ Жадвални таҳрирлаш</button></div>'+
+    '<div class="card pad" style="margin-bottom:18px">'+
     '<div class="spread"><div style="min-width:0"><div class="small muted" style="font-weight:600">Ҳозирги ҳафта</div>'+
     '<b style="font-size:18px">'+cw.n+'-ҳафта · '+esc(cw.modul.split("—")[0].trim())+'</b>'+
     '<div class="small muted">Кейинги қадам: '+(weekLessonsDone(cw)
@@ -1542,6 +1622,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Enter"){const n=$("nx")||$("dnx")||$("cnx");if(n)n.click()}
 });
 
+applySched();
 renderDars();
 initSync();
 asLoad();
