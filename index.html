@@ -1131,28 +1131,25 @@ function clausesOf(t){ return (String(t||"").match(/\d+(?:\/\d+)+/g)||[]) }
 function bandClauses(p){ return clausesOf(typeof p==="string"?p:((p&&p.a)||"")+" "+((p&&p.t)||"")) }
 function bandMap(Lx){
   if(Lx.__bmap) return Lx.__bmap;
-  var bands=[], qs=(Lx.testlar||[]);
+  var bands=[];
   (Lx.konspekt||[]).forEach(function(k){ (k.p||[]).forEach(function(p){ bands.push(bandClauses(p)) }) });
-  var qcl=qs.map(function(q){ return clausesOf((q.izoh||"")+" "+(q.savol||"")) });
+  var qcl=(Lx.testlar||[]).map(function(q){ return clausesOf((q.izoh||"")+" "+(q.savol||"")) });
   var used={}, res=bands.map(function(){return []});
-  function tryFill(pass){
+  /* Ҳар бир савол фақат битта банд остида чиқади — такрор бўлмайди. */
+  function fill(exactOnly,lim){
     bands.forEach(function(bc,bi){
-      if(!bc.length) return;
+      if(!bc.length||res[bi].length>=lim) return;
       var set=new Set(bc), best=bc.slice().sort(function(a,b){return b.length-a.length})[0];
-      qcl.forEach(function(qc,qi){
-        if(!qc.length||res[bi].length>=3) return;
-        if(res[bi].indexOf(qi)>=0) return;
-        var hit=qc.some(function(c){return set.has(c)});
-        if(!hit) return;
-        var exact=(qc.indexOf(best)>=0 && qc.length<=2);
-        if(pass===0 && !exact) return;
-        if(pass<2 && (used[qi]||0)>=2) return;
-        res[bi].push(qi); used[qi]=(used[qi]||0)+1;
-      });
+      for(var qi=0;qi<qcl.length;qi++){
+        var qc=qcl[qi];
+        if(!qc.length||res[bi].length>=lim||(used[qi]||0)>=1) continue;
+        if(!qc.some(function(c){return set.has(c)})) continue;
+        if(exactOnly && qc.indexOf(best)<0) continue;
+        res[bi].push(qi); used[qi]=1;
+      }
     });
   }
-  tryFill(0); tryFill(1);
-  bands.forEach(function(bc,bi){ if(bc.length && !res[bi].length) tryFill(2) });
+  fill(true,1); fill(false,1); fill(true,2); fill(false,2);
   Lx.__bmap={bands:bands,res:res};
   return Lx.__bmap;
 }
