@@ -1387,7 +1387,8 @@ function startMock(n){
   if(!pool.length){ toast("Савол топилмади"); return }
   pool=pool.slice(0,Math.min(n,pool.length));
   quiz=pool; qi=0; qright=0; qans=[]; qmode="Мок имтиҳон — "+pool.length+" савол";
-  mockEnd=Date.now()+2*60*60*1000;
+  var MOKMIN={80:180,50:115,25:60,15:35,10:25};
+  mockEnd=Date.now()+(MOKMIN[n]||Math.ceil(n*2.25))*60*1000;
   $("v-mock").innerHTML='<div id="stepbody2"></div>';
   drawQ(); setTab("mock"); startMockTimer();
 }
@@ -1410,11 +1411,14 @@ function renderMock(){
   $("v-mock").innerHTML=
     '<div class="sechead">Мок имтиҳон</div>'+
     '<div class="card pad" style="margin-bottom:16px">'+
-      '<p class="muted" style="margin:0 0 10px">Ҳақиқий имтиҳонга яқин шароит: <b>50 савол</b>, <b>2 соат</b> вақт. '+
+      '<p class="muted" style="margin:0 0 10px">Ҳақиқий CPSS имтиҳонида 3 соатда 80–90 савол берилади. Қуйидаги вариантлардан бирини танланг — вақт савол сонига мос белгиланади. '+
       'Саволлар «Тестлар» бўлимидаги '+tot+' та саволдан ҳар сафар тасодифий танланади — ҳар уринишда бошқача бўлади.</p>'+
       '<p class="muted" style="margin:0 0 12px">Вақт тугаса, имтиҳон автоматик якунланади ва натижа кўрсатилади.</p>'+
-      '<div class="row"><button class="btn pri" onclick="startMock(50)">Имтиҳонни бошлаш · 50 савол · 2 соат</button>'+
-      '<button class="btn" onclick="startMock(25)">Қисқа синов · 25 савол</button></div>'+
+      '<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn pri" onclick="startMock(80)">Тўлиқ имтиҳон · 80 савол · 3 соат</button>'+
+      '<button class="btn pri" onclick="startMock(50)">Имтиҳон · 50 савол · 1 соат 55 дақиқа</button>'+
+      '<button class="btn" onclick="startMock(25)">Қисқа синов · 25 савол · 1 соат</button>'+
+      '<button class="btn" onclick="startMock(15)">Тезкор · 15 савол · 35 дақиқа</button>'+
+      '<button class="btn" onclick="startMock(10)">Мини · 10 савол · 25 дақиқа</button></div>'+
     '</div>';
   setTab("mock",true);
 }
